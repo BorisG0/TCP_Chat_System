@@ -17,6 +17,11 @@ public class Server {
                 String lineIn = in.readLine();
 
                 System.out.println("new message: " + lineIn);
+                lineOut = "OK";
+
+                out = new PrintWriter(connection.getOutputStream());
+                out.println(lineOut); //Antwort an Client zurückschicken
+                out.flush();
             }
 
         }catch (Exception e){
