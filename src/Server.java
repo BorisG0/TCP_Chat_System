@@ -5,12 +5,15 @@ import java.util.ArrayList;
 public class Server {
     public static final int DEFAULT_PORT = 7777;
 
-    public static void main(String[] args) {
-        ArrayList<User> users = new ArrayList<User>();
+    ArrayList<User> users = new ArrayList<User>();
+
+    Server(){
         users.add(new User("Tom", "111"));
         users.add(new User("Tim", "222"));
         users.add(new User("Henning", "333"));
+    }
 
+    public void start(){
         try {
             ServerSocket server = new ServerSocket(DEFAULT_PORT);
             Socket connection;
@@ -59,5 +62,9 @@ public class Server {
         }
         public String name;
         public String password;
+    }
+
+    public static void main(String[] args) {
+        new Server().start();
     }
 }
