@@ -1,11 +1,13 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Server {
     public static final int DEFAULT_PORT = 7777;
 
-    ArrayList<User> users = new ArrayList<User>();
+    ArrayList<User> users = new ArrayList<>();
+    HashMap<String, User> loggedInUsers = new HashMap<>();
 
     Server(){
         users.add(new User("Tom", "111"));
@@ -26,36 +28,72 @@ public class Server {
                 in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
                 String lineIn = in.readLine();
-                System.out.println("new request: '" + lineIn + "' from Address: " + connection.getInetAddress() + ":" + connection.getPort());
+                String address = connection.getInetAddress().toString() + ":" +  connection.getPort();
+                System.out.println("new request: '" + lineIn + "' from Address: " + address);
 
                 String[] lineInSplit = lineIn.split(" ", 2); //Aufteilen in Befehl und Inhalt
                 String command = lineInSplit[0];
 
+                String parameter = "";
+                if(lineInSplit.length > 1)
+                parameter = lineInSplit[1];
+
                 lineOut = "ERROR";
                 if (command.equals("LOGIN")) {
-                    String[] loginData = lineInSplit[1].split(" ", 2);
-                    String name = loginData[0];
-                    String password = loginData[1];
 
-                    for (User user : users) {
-                        if (user.name.equals(name) && user.password.equals(password)) {
-                            lineOut = "OK";
-                            break;
-                        }
-                    }
+                    lineOut = handleLogin(parameter, address);
+
+                }else if(command.equals("MSG")){
+                    lineOut = handleMessage(parameter, address);
                 }
 
-
+                System.out.println("sending answer: '" + lineOut + "'");
                 out = new PrintWriter(connection.getOutputStream());
                 out.println(lineOut); //Antwort an Client zurückschicken
                 out.flush();
+
+                connection.close();
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    static class User{
+
+    String handleLogin(String data, String address){
+        String[] loginData = data.split(" ", 2);
+        String name = loginData[0];
+        String password = loginData[1];
+
+        for (User user : users) {
+            if (user.name.equals(name) && user.password.equals(password)) {
+                loggedInUsers.put(address, user);
+                return "Logged in as '" + user.name + "' on address: " + address;
+            }
+        }
+        return "ERROR: wrong username or password";
+    }
+
+    String handleMessage(String data, String address){
+        String[] messageData = data.split(" ", 2);
+        String message = messageData[1];
+        String receiver = messageData[0];
+
+        if(loggedInUsers.containsKey(address)){
+            User sender = loggedInUsers.get(address);
+            return "Message from '" + sender.name + "' to '" + receiver + "': " + message;
+        }else {
+            return "You are not logged in!";
+        }
+    }
+
+    void printLoggedInUsers(){
+        for(String key : loggedInUsers.keySet()){
+            System.out.println("logged in user: " + loggedInUsers.get(key).name + " on address: " + key);
+        }
+    }
+
+    class User{
         User(String name, String password){
             this.name = name;
             this.password = password;
