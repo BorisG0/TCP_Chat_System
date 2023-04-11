@@ -14,6 +14,8 @@ public class Client {
         if(args.length > 0)
             clientPort = Integer.parseInt(args[0]);
 
+        System.out.println("Client started on port " + clientPort);
+
         Socket socket;
 
         while(true){
@@ -30,7 +32,12 @@ public class Client {
                 networkOut.println(userLine); //Befehl an Server schicken
                 networkOut.flush();
 
-                System.out.println(networkIn.readLine()); //Antwort vom Server anzeigen
+                String answer = networkIn.readLine(); //Antwort vom Server lesen
+
+                String[] answerSplit = answer.split(";");
+
+                for(String s : answerSplit)//Antwort vom Server anzeigen
+                System.out.println(s);
 
                 socket.close();
             }catch (Exception e){

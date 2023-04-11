@@ -7,6 +7,7 @@ public class Server {
     public static final int DEFAULT_PORT = 7777;
 
     ArrayList<User> users = new ArrayList<>();
+    ArrayList<Message> messages = new ArrayList<>();
     HashMap<String, User> loggedInUsers = new HashMap<>();
 
     Server(){
@@ -21,6 +22,8 @@ public class Server {
             Socket connection;
             PrintWriter out;
             BufferedReader in;
+
+            System.out.println("Server started on port " + DEFAULT_PORT);
 
             while (true) {
                 String lineOut = "";
@@ -45,6 +48,8 @@ public class Server {
 
                 }else if(command.equals("MSG")){
                     lineOut = handleMessage(parameter, address);
+                }else if(command.equals("GET")){
+                    lineOut = handleGetMessages(parameter, address);
                 }
 
                 System.out.println("sending answer: '" + lineOut + "'");
@@ -81,9 +86,27 @@ public class Server {
 
         if(loggedInUsers.containsKey(address)){
             User sender = loggedInUsers.get(address);
+            messages.add(new Message(sender.name, receiver, message));
             return "Message from '" + sender.name + "' to '" + receiver + "': " + message;
         }else {
-            return "You are not logged in!";
+            return "ERROR: You are not logged in!";
+        }
+    }
+
+    String handleGetMessages(String data, String address){
+        if(loggedInUsers.containsKey(address)){
+            String allMessages = "";
+            User user = loggedInUsers.get(address);
+
+            for(Message m: messages){
+                if(m.receiver.equals(user.name)) {
+                    allMessages += m.sender + ": " + m.message + ";";
+                }
+            }
+
+            return allMessages;
+        }else {
+            return "ERROR: You are not logged in!";
         }
     }
 
@@ -100,6 +123,17 @@ public class Server {
         }
         public String name;
         public String password;
+    }
+
+    class Message{
+        Message(String sender, String receiver, String message){
+            this.sender = sender;
+            this.receiver = receiver;
+            this.message = message;
+        }
+        public String sender;
+        public String receiver;
+        public String message;
     }
 
     public static void main(String[] args) {
