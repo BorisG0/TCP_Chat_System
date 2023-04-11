@@ -12,8 +12,8 @@ public class Server {
 
     Server(){
         users.add(new User("Tom", "111"));
-        users.add(new User("Tim", "222"));
-        users.add(new User("Henning", "333"));
+        users.add(new User("Peter", "222"));
+        users.add(new User("Heinz", "333"));
     }
 
     public void start(){
@@ -50,6 +50,8 @@ public class Server {
                     lineOut = handleMessage(parameter, address);
                 }else if(command.equals("GET")){
                     lineOut = handleGetMessages(parameter, address);
+                }else if(command.equals("CONV")){
+                    lineOut = handleGetConversation(parameter, address);
                 }
 
                 System.out.println("sending answer: '" + lineOut + "'");
@@ -100,6 +102,23 @@ public class Server {
 
             for(Message m: messages){
                 if(m.receiver.equals(user.name)) {
+                    allMessages += m.sender + ": " + m.message + ";";
+                }
+            }
+
+            return allMessages;
+        }else {
+            return "ERROR: You are not logged in!";
+        }
+    }
+
+    String handleGetConversation(String data, String address){
+        if(loggedInUsers.containsKey(address)){
+            String allMessages = "";
+            User user = loggedInUsers.get(address);
+
+            for(Message m: messages){
+                if((m.receiver.equals(user.name) && m.sender.equals(data)) || (m.sender.equals(user.name) && m.receiver.equals(data))){
                     allMessages += m.sender + ": " + m.message + ";";
                 }
             }
