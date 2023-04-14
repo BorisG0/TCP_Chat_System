@@ -10,20 +10,25 @@ public class Server {
     ArrayList<Message> messages = new ArrayList<>();
     HashMap<String, User> loggedInUsers = new HashMap<>();
 
+    int port, port2;
+
     Server(){
         users.add(new User("Tom", "111"));
         users.add(new User("Peter", "222"));
         users.add(new User("Heinz", "333"));
     }
 
-    public void start(){
+    public void start(int port, int port2){
+        this.port = port;
+        this.port2 = port2;
+
         try {
-            ServerSocket server = new ServerSocket(DEFAULT_PORT);
+            ServerSocket server = new ServerSocket(port);
             Socket connection;
             PrintWriter out;
             BufferedReader in;
 
-            System.out.println("Server started on port " + DEFAULT_PORT);
+            System.out.println("Server started on port " + port + ", with second server on port " + port2);
 
             while (true) {
                 String lineOut = "";
@@ -156,6 +161,15 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        new Server().start();
+        int port = DEFAULT_PORT;
+        int port2 = 8888;
+
+        if(args.length > 0){
+            port = Integer.parseInt(args[0]);
+        }
+        if(args.length > 1){
+            port2 = Integer.parseInt(args[1]);
+        }
+        new Server().start(port, port2);
     }
 }
