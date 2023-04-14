@@ -57,11 +57,13 @@ public class Server {
                     lineOut = handleGetMessages(parameter, address);
                 }else if(command.equals("CONV")){
                     lineOut = handleGetConversation(parameter, address);
+                }else if(command.equals("SYNC")) {
+                    lineOut = handleSyncRequest(parameter);
                 }
 
                 System.out.println("sending answer: '" + lineOut + "'");
                 out = new PrintWriter(connection.getOutputStream());
-                out.println(lineOut); //Antwort an Client zurückschicken
+                out.println(lineOut); //Antwort zurückschicken
                 out.flush();
 
                 connection.close();
@@ -70,6 +72,45 @@ public class Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    void syncToSecondServer(){
+        try {
+            Socket connection = new Socket("localhost", port2);
+            PrintWriter out = new PrintWriter(connection.getOutputStream());
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+            String data = "";
+            for(Message m : messages){
+                data += m.sender + "-" + m.receiver + "-" + m.message + ";";
+            }
+
+            out.println("SYNC " + data);
+            out.flush();
+
+            String answer = in.readLine();
+            System.out.println("sync answer: " + answer);
+
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    String handleSyncRequest(String data){
+        String[] messages = data.split(";");
+
+        if(messages.length <= this.messages.size())
+            return "sync not necessary";
+
+        for(String m : messages){
+            String[] messageData = m.split("-", 3);
+            String sender = messageData[0];
+            String receiver = messageData[1];
+            String message = messageData[2];
+            this.messages.add(new Message(sender, receiver, message));
+        }
+        return "sync successful";
     }
 
     String handleLogin(String data, String address){
@@ -94,6 +135,9 @@ public class Server {
         if(loggedInUsers.containsKey(address)){
             User sender = loggedInUsers.get(address);
             messages.add(new Message(sender.name, receiver, message));
+
+            syncToSecondServer();
+
             return "Message from '" + sender.name + "' to '" + receiver + "': " + message;
         }else {
             return "ERROR: You are not logged in!";
