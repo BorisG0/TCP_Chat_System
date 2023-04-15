@@ -1,18 +1,27 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 public class Client {
-    public static void main(String[] args) {
+    int clientPort;
+    ArrayList<Integer> serverPorts = new ArrayList<Integer>();
+
+    Client(int clientPort){
+        this.clientPort = clientPort;
+        serverPorts.add(7777);
+        serverPorts.add(8888);
+    }
+
+    int getRandomServerPort(){
+        return serverPorts.get((int)(Math.random() * serverPorts.size()));
+    }
+
+    public void start(){
         BufferedReader userIn = new BufferedReader(new InputStreamReader(System.in));
         BufferedReader networkIn;
         PrintWriter networkOut;
 
         String serverAddress = "localhost"; // or "127.0.0.1"
-        int serverPort = Server.DEFAULT_PORT;
-
-        int clientPort = 1234;
-        if(args.length > 0)
-            clientPort = Integer.parseInt(args[0]);
 
         System.out.println("Client started on port " + clientPort);
 
@@ -24,7 +33,7 @@ public class Client {
 
                 socket = new Socket();
                 socket.bind(new InetSocketAddress(clientPort));
-                socket.connect(new InetSocketAddress(serverAddress, serverPort)); //Verbindung zum Server
+                socket.connect(new InetSocketAddress(serverAddress, getRandomServerPort())); //Verbindung zum Server
 
                 networkIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 networkOut = new PrintWriter(socket.getOutputStream());
@@ -37,12 +46,20 @@ public class Client {
                 String[] answerSplit = answer.split(";");
 
                 for(String s : answerSplit)//Antwort vom Server anzeigen
-                System.out.println(s);
+                    System.out.println(s);
 
                 socket.close();
             }catch (Exception e){
                 e.printStackTrace();
             }
         }
+    }
+
+    public static void main(String[] args) {
+        int clientPort = 1234;
+        if(args.length > 0)
+            clientPort = Integer.parseInt(args[0]);
+
+        new Client(clientPort).start();
     }
 }

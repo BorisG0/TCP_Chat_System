@@ -52,6 +52,7 @@ public class Server {
                     parameter = lineInSplit[1];
 
                 lineOut = "ERROR";
+
                 if (command.equals("LOGIN")) {
                     lineOut = handleLogin(parameter, address);
                 }else if(command.equals("MSG")){
@@ -140,6 +141,13 @@ public class Server {
     }
 
     String handleLoginSyncRequest(String data){
+        String[] logins = data.split(";");
+
+        for(String login : logins){
+            String[] loginData = login.split("-");
+            loggedInUsers.put(loginData[0], loginData[1]);
+        }
+
         return "login sync successful";
     }
 
