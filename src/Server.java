@@ -82,7 +82,7 @@ public class Server {
 
             String data = "";
             for(Message m : messages){
-                data += m.sender + "-" + m.receiver + "-" + m.message + ";";
+                data += m.serialize() + ";";
             }
 
             out.println("SYNC " + data);
@@ -104,11 +104,7 @@ public class Server {
             return "sync not necessary";
 
         for(String m : messages){
-            String[] messageData = m.split("-", 3);
-            String sender = messageData[0];
-            String receiver = messageData[1];
-            String message = messageData[2];
-            this.messages.add(new Message(sender, receiver, message));
+            this.messages.add(new Message(m));
         }
         return "sync successful";
     }
@@ -194,14 +190,26 @@ public class Server {
     }
 
     class Message{
+        public String sender;
+        public String receiver;
+        public String message;
+
+        Message(String serialized){
+            String[] messageData = serialized.split("-", 3);
+            String sender = messageData[0];
+            String receiver = messageData[1];
+            String message = messageData[2];
+        }
+
         Message(String sender, String receiver, String message){
             this.sender = sender;
             this.receiver = receiver;
             this.message = message;
         }
-        public String sender;
-        public String receiver;
-        public String message;
+
+        public String serialize(){
+            return sender + "-" + receiver + "-" + message;
+        }
     }
 
     public static void main(String[] args) {
