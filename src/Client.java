@@ -32,9 +32,7 @@ public class Client {
                 String userLine = userIn.readLine(); //auf Tastatureingabe warten
                 String response = "";
 
-                //TODO: prüfen ob Server online
                 boolean connected = false;
-
                 while(!connected){ //solange versuchen bis man sich mit einem Server verbunden hat
                     int serverPort = getRandomServerPort();
                     try{
@@ -50,12 +48,14 @@ public class Client {
                         response = networkIn.readLine(); //Antwort vom Server lesen
 
                         connected = true;
+                        System.out.println("Connected to server with port: " + serverPort);
                     }catch (Exception e){
                         System.out.println("Server with port: " + serverPort + " not online, trying another one");
                     }
                 }
 
                 String[] answerSplit = response.split(";");
+                System.out.println("Response from server: ");
 
                 for(String s : answerSplit)//Antwort vom Server anzeigen
                     System.out.println(s);
