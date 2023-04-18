@@ -5,7 +5,7 @@ public class Message{
     public String timestamp;
 
     Message(String serialized){
-        String[] messageData = serialized.split("-", 3);
+        String[] messageData = serialized.split("-", 4);
         this.sender = messageData[0];
         this.receiver = messageData[1];
         this.timestamp = messageData[2];

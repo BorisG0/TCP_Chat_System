@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Server {
-    public static final int DEFAULT_PORT = 7777;
-
-    //TODO: Daten in Textdatei speichern
     ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörtern
     ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
@@ -28,6 +25,8 @@ public class Server {
     public void start(int port, int port2){
         this.port = port; //eigener Port
         this.port2 = port2; //Port vom zweiten Server
+
+        this.messages = DataToFileWriter.readMessagesFromFile(port + ""); //Nachrichten aus Datei laden
 
         try {
             ServerSocket server = new ServerSocket(port);
@@ -64,9 +63,9 @@ public class Server {
                 }else if(command.equals("CONV")){
                     lineOut = handleGetConversation(parameter, senderId);
                 }else if(command.equals("SYNCMSG")) {
-                    lineOut = handleMessageSyncRequest(parameter);
+                    lineOut = handleMessageSync(parameter);
                 }else if(command.equals("SYNCLOGIN")) {
-                    lineOut = handleLoginSyncRequest(parameter);
+                    lineOut = handleLoginSync(parameter);
                 }
 
                 System.out.println("sending response: '" + lineOut + "'");
@@ -113,7 +112,7 @@ public class Server {
         sendSyncCommand("SYNCMSG " + data);
     }
 
-    String handleMessageSyncRequest(String data){
+    String handleMessageSync(String data){
         String[] messages = data.split(";");
 
         //nicht syncen wenn Anzahl der Nachrichten kleiner oder gleich der eigenen ist
@@ -139,7 +138,7 @@ public class Server {
         sendSyncCommand("SYNCLOGIN " + data);
     }
 
-    String handleLoginSyncRequest(String data){
+    String handleLoginSync(String data){
         String[] logins = data.split(";");
 
         for(String login : logins){
@@ -220,7 +219,7 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        int port = DEFAULT_PORT;
+        int port = 7777;
         int port2 = 8888;
 
         if(args.length > 0){
