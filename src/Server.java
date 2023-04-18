@@ -131,6 +131,9 @@ public class Server {
     }
 
     String handleMessageSync(String data){
+        if(data.length() == 0)
+            return "message sync not necessary";
+
         String[] messages = data.split(";");
 
         //nicht syncen wenn Anzahl der Nachrichten kleiner oder gleich der eigenen ist
@@ -143,6 +146,7 @@ public class Server {
             this.messages.add(new Message(m));
         }
         System.out.println("synced messages from second server");
+        DataToFileWriter.writeMessagesToFile(this.messages, port + ""); //Nachrichten in Datei speichern
         return "message sync successful";
     }
 
