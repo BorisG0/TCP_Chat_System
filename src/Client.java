@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class Client {
     int id;
-    ArrayList<Integer> serverPorts = new ArrayList<Integer>();
+    ArrayList<Integer> serverPorts = new ArrayList<>();
 
     Client(int id){
         this.id = id;
