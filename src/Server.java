@@ -35,6 +35,7 @@ public class Server {
             BufferedReader in;
 
             System.out.println("Server started on port " + port + ", with second server on port " + port2);
+            requestMessageSync(); //Nachrichten vom zweiten Server anfordern
 
             while (true) {
                 String lineOut = "ERROR"; //Antwort vom Server vorbereiten
@@ -66,6 +67,8 @@ public class Server {
                     lineOut = handleMessageSync(parameter);
                 }else if(command.equals("SYNCLOGIN")) {
                     lineOut = handleLoginSync(parameter);
+                }else if(command.equals("RQSTMSG")) {
+                    lineOut = handleRequestMessageSync();
                 }
 
                 System.out.println("sending response: '" + lineOut + "'");
@@ -81,10 +84,23 @@ public class Server {
         }
     }
 
-    void sendSyncCommand(String command){
+    void requestMessageSync(){
+        String serializedMessages = sendSyncCommand("RQSTMSG");
+        handleMessageSync(serializedMessages);
+    }
+
+    String handleRequestMessageSync(){
+        String data = "";
+        for(Message m : messages){ // alle gespeicherten Nachrichten
+            data += m.serialize() + ";";
+        }
+        return data;
+    }
+
+    String sendSyncCommand(String command){
         String timestamp = String.valueOf(System.currentTimeMillis());
         String syncRequest = port + "/" + timestamp + "/" + command;
-        System.out.println("created sync request: " + syncRequest);
+        System.out.println("created sync command: " + syncRequest);
 
         try {
             Socket connection = new Socket("localhost", port2);
@@ -98,9 +114,11 @@ public class Server {
             System.out.println("sync answer: " + answer);
 
             connection.close();
+            return answer;
         } catch (Exception e) {
             System.out.println("sync failed");
         }
+        return "sync failed";
     }
 
     void syncMessagesToSecondServer(){
@@ -124,6 +142,7 @@ public class Server {
         for(String m : messages){
             this.messages.add(new Message(m));
         }
+        System.out.println("synced messages from second server");
         return "message sync successful";
     }
 

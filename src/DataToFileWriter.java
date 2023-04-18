@@ -23,18 +23,15 @@ public class DataToFileWriter {
     public static ArrayList<Message> readMessagesFromFile(String filename){
         ArrayList<Message> messages = new ArrayList<>();
         try {
-            System.out.println("Reading messages from file: " + filename + ".txt");
             FileReader fileReader = new FileReader(filename + ".txt");
             BufferedReader bufferedReader = new BufferedReader(fileReader);
             String line;
             while((line = bufferedReader.readLine()) != null){
                 messages.add(new Message(line));
-                System.out.println("Message read from file: " + line);
             }
             bufferedReader.close();
         }catch (Exception e){
             System.out.println("Error reading messages from file");
-            e.printStackTrace();
         }
         return messages;
     }
