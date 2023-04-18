@@ -33,11 +33,14 @@ public class Client {
 
                 socket = new Socket();
                 socket.bind(new InetSocketAddress(clientPort));
+
+                //TODO: prüfen ob Server online
                 socket.connect(new InetSocketAddress(serverAddress, getRandomServerPort())); //Verbindung zum Server
 
                 networkIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 networkOut = new PrintWriter(socket.getOutputStream());
 
+                //TODO: Timestamp mitverschicken
                 networkOut.println(userLine); //Befehl an Server schicken
                 networkOut.flush();
 

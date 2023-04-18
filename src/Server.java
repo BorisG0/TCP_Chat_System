@@ -6,15 +6,17 @@ import java.util.HashMap;
 public class Server {
     public static final int DEFAULT_PORT = 7777;
 
-    ArrayList<UserData> userData = new ArrayList<>();
-    ArrayList<Message> messages = new ArrayList<>();
+    //TODO: Daten in Textdatei speichern
+    ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörter
+    ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
-    HashMap<String, UserData> userDataByName = new HashMap<>();
-    HashMap<String, String> loggedInUsers = new HashMap<>();
+    HashMap<String, UserData> userDataByName = new HashMap<>(); // Hilfsstruktur zum Bekommen der Nutzer zum Namen
+    HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welche Adresse auf welchen Nutzer angemeldet ist
 
     int port, port2;
 
     Server(){
+        //3 Anfangsnutzer initialisieren
         userData.add(new UserData("Tom", "111"));
         userDataByName.put("Tom", userData.get(0));
         userData.add(new UserData("Peter", "222"));
@@ -24,8 +26,8 @@ public class Server {
     }
 
     public void start(int port, int port2){
-        this.port = port;
-        this.port2 = port2;
+        this.port = port; //eigener Port
+        this.port2 = port2; //Port vom zweiten Server
 
         try {
             ServerSocket server = new ServerSocket(port);
@@ -87,7 +89,7 @@ public class Server {
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
             String data = "";
-            for(Message m : messages){
+            for(Message m : messages){ // alle gespeicherten Nachrichten
                 data += m.serialize() + ";";
             }
 
@@ -106,9 +108,11 @@ public class Server {
     String handleMessageSyncRequest(String data){
         String[] messages = data.split(";");
 
+        //nicht syncen wenn Anzahl der Nachrichten kleiner oder gleich der eigenen ist
         if(messages.length <= this.messages.size())
             return "message sync not necessary";
 
+        //alle eigenen Nachrichten mit den geschickten überschreiben
         for(String m : messages){
             this.messages.add(new Message(m));
         }
@@ -152,13 +156,14 @@ public class Server {
     }
 
     String handleLogin(String data, String address){
-        String[] loginData = data.split(" ", 2);
+        String[] loginData = data.split(" ", 2); //Teilen in Name und Passwort
+
         String name = loginData[0];
         String password = loginData[1];
 
         for (UserData user : userData) {
             if (user.name.equals(name) && user.password.equals(password)) {
-                loggedInUsers.put(address, user.name);
+                loggedInUsers.put(address, user.name); //Adresse mit User verknüpfen
 
                 syncLoginToSecondServer();
 
@@ -169,13 +174,13 @@ public class Server {
     }
 
     String handleMessage(String data, String address){
-        String[] messageData = data.split(" ", 2);
+        String[] messageData = data.split(" ", 2); //Teilen in Empfänger und Nachricht
         String message = messageData[1];
         String receiver = messageData[0];
 
-        if(loggedInUsers.containsKey(address)){
+        if(loggedInUsers.containsKey(address)){ //Prüfen ob Adresse angemeldet ist
             String sender = loggedInUsers.get(address);
-            messages.add(new Message(sender, receiver, message));
+            messages.add(new Message(sender, receiver, message)); //Nachricht abspeichern
 
             syncMessagesToSecondServer();
 
@@ -203,11 +208,11 @@ public class Server {
     }
 
     String handleGetConversation(String data, String address){
-        if(loggedInUsers.containsKey(address)){
+        if(loggedInUsers.containsKey(address)){ //Prüfen ob Adresse angemeldet ist
             String allMessages = "";
             String user = loggedInUsers.get(address);
 
-            for(Message m: messages){
+            for(Message m: messages){ //Alle Nachrichten aus der Unterhaltung mit einer Person sammeln
                 if((m.receiver.equals(user) && m.sender.equals(data)) || (m.sender.equals(user) && m.receiver.equals(data))){
                     allMessages += m.sender + ": " + m.message + ";";
                 }
