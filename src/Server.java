@@ -11,7 +11,7 @@ public class Server {
     ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
     HashMap<String, UserData> userDataByName = new HashMap<>(); // Hilfsstruktur zum Bekommen der Nutzer zum Namen
-    HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welche Adresse auf welchen Nutzer angemeldet ist
+    HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welcher Client auf welchen Nutzer angemeldet ist
 
     int port, port2;
 
@@ -38,38 +38,37 @@ public class Server {
             System.out.println("Server started on port " + port + ", with second server on port " + port2);
 
             while (true) {
-                String lineOut = "";
-                connection = server.accept();
+                String lineOut = "ERROR"; //Antwort vom Server vorbereiten
+                connection = server.accept(); //auf neue Verbindung warten
                 in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
                 String lineIn = in.readLine();
-                String address = connection.getInetAddress().toString() + ":" +  connection.getPort();
-                System.out.println("new request: '" + lineIn + "' from Address: " + address);
+                System.out.println("new request: '" + lineIn + "'");
 
-                String[] lineInSplit = lineIn.split(" ", 2); //Aufteilen in Befehl und Inhalt
-                String command = lineInSplit[0];
+                String [] splitId = lineIn.split("/", 2); //Aufteilen in ID und Befehl
+                String senderId = splitId[0];
+
+                String[] commandSplit = splitId[1].split(" ", 2); //Aufteilen in Befehl und Parameter
+                String command = commandSplit[0];
 
                 String parameter = "";
-                if(lineInSplit.length > 1)
-                    parameter = lineInSplit[1];
+                if(commandSplit.length > 1)
+                    parameter = commandSplit[1];
 
-                lineOut = "ERROR";
 
                 if (command.equals("LOGIN")) {
-                    lineOut = handleLogin(parameter, address);
+                    lineOut = handleLogin(parameter, senderId);
                 }else if(command.equals("MSG")){
-                    lineOut = handleMessage(parameter, address);
-                }else if(command.equals("GET")){
-                    lineOut = handleGetMessages(parameter, address);
+                    lineOut = handleMessage(parameter, senderId);
                 }else if(command.equals("CONV")){
-                    lineOut = handleGetConversation(parameter, address);
+                    lineOut = handleGetConversation(parameter, senderId);
                 }else if(command.equals("SYNCMSG")) {
                     lineOut = handleMessageSyncRequest(parameter);
                 }else if(command.equals("SYNCLOGIN")) {
                     lineOut = handleLoginSyncRequest(parameter);
                 }
 
-                System.out.println("sending answer: '" + lineOut + "'");
+                System.out.println("sending response: '" + lineOut + "'");
                 out = new PrintWriter(connection.getOutputStream());
                 out.println(lineOut); //Antwort zurückschicken
                 out.flush();
@@ -93,7 +92,9 @@ public class Server {
                 data += m.serialize() + ";";
             }
 
-            out.println("SYNCMSG " + data);
+            String syncRequest = port + "/SYNCMSG " + data;
+            System.out.println("created sync request: " + syncRequest);
+            out.println(syncRequest);
             out.flush();
 
             String answer = in.readLine();
@@ -113,6 +114,7 @@ public class Server {
             return "message sync not necessary";
 
         //alle eigenen Nachrichten mit den geschickten überschreiben
+        this.messages.clear();
         for(String m : messages){
             this.messages.add(new Message(m));
         }
@@ -132,7 +134,9 @@ public class Server {
                 data += address + "-" + loggedInUsers.get(address) + ";";
             }
 
-            out.println("SYNCLOGIN " + data);
+            String syncRequest = port + "/SYNCLOGIN " + data;
+            System.out.println("created sync request: " + syncRequest);
+            out.println(syncRequest);
             out.flush();
 
             String answer = in.readLine();
@@ -155,7 +159,7 @@ public class Server {
         return "login sync successful";
     }
 
-    String handleLogin(String data, String address){
+    String handleLogin(String data, String id){
         String[] loginData = data.split(" ", 2); //Teilen in Name und Passwort
 
         String name = loginData[0];
@@ -163,23 +167,23 @@ public class Server {
 
         for (UserData user : userData) {
             if (user.name.equals(name) && user.password.equals(password)) {
-                loggedInUsers.put(address, user.name); //Adresse mit User verknüpfen
+                loggedInUsers.put(id, user.name); //ID mit User verknüpfen
 
                 syncLoginToSecondServer();
 
-                return "Logged in as '" + user.name + "' on address: " + address;
+                return "Logged in as '" + user.name + "' on client with id: " + id;
             }
         }
         return "ERROR: wrong username or password";
     }
 
-    String handleMessage(String data, String address){
+    String handleMessage(String data, String id){
         String[] messageData = data.split(" ", 2); //Teilen in Empfänger und Nachricht
         String message = messageData[1];
         String receiver = messageData[0];
 
-        if(loggedInUsers.containsKey(address)){ //Prüfen ob Adresse angemeldet ist
-            String sender = loggedInUsers.get(address);
+        if(loggedInUsers.containsKey(id)){ //Prüfen ob Client angemeldet ist
+            String sender = loggedInUsers.get(id);
             messages.add(new Message(sender, receiver, message)); //Nachricht abspeichern
 
             syncMessagesToSecondServer();
@@ -190,27 +194,11 @@ public class Server {
         }
     }
 
-    String handleGetMessages(String data, String address){
-        if(loggedInUsers.containsKey(address)){
+
+    String handleGetConversation(String data, String id){
+        if(loggedInUsers.containsKey(id)){ //Prüfen ob Adresse angemeldet ist
             String allMessages = "";
-            String user = loggedInUsers.get(address);
-
-            for(Message m: messages){
-                if(m.receiver.equals(user)) {
-                    allMessages += m.sender + ": " + m.message + ";";
-                }
-            }
-
-            return allMessages;
-        }else {
-            return "ERROR: You are not logged in!";
-        }
-    }
-
-    String handleGetConversation(String data, String address){
-        if(loggedInUsers.containsKey(address)){ //Prüfen ob Adresse angemeldet ist
-            String allMessages = "";
-            String user = loggedInUsers.get(address);
+            String user = loggedInUsers.get(id);
 
             for(Message m: messages){ //Alle Nachrichten aus der Unterhaltung mit einer Person sammeln
                 if((m.receiver.equals(user) && m.sender.equals(data)) || (m.sender.equals(user) && m.receiver.equals(data))){
@@ -246,9 +234,9 @@ public class Server {
 
         Message(String serialized){
             String[] messageData = serialized.split("-", 3);
-            String sender = messageData[0];
-            String receiver = messageData[1];
-            String message = messageData[2];
+            this.sender = messageData[0];
+            this.receiver = messageData[1];
+            this.message = messageData[2];
         }
 
         Message(String sender, String receiver, String message){

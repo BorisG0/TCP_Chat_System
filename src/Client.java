@@ -3,11 +3,11 @@ import java.net.*;
 import java.util.ArrayList;
 
 public class Client {
-    int clientPort;
+    int id;
     ArrayList<Integer> serverPorts = new ArrayList<Integer>();
 
-    Client(int clientPort){
-        this.clientPort = clientPort;
+    Client(int id){
+        this.id = id;
         serverPorts.add(7777);
         serverPorts.add(8888);
     }
@@ -20,28 +20,26 @@ public class Client {
         BufferedReader userIn = new BufferedReader(new InputStreamReader(System.in));
         BufferedReader networkIn;
         PrintWriter networkOut;
+        Socket connection;
 
         String serverAddress = "localhost"; // or "127.0.0.1"
 
-        System.out.println("Client started on port " + clientPort);
+        System.out.println("Client started with id " + id);
 
-        Socket socket;
 
         while(true){
             try{
                 String userLine = userIn.readLine(); //auf Tastatureingabe warten
 
-                socket = new Socket();
-                socket.bind(new InetSocketAddress(clientPort));
-
                 //TODO: prüfen ob Server online
-                socket.connect(new InetSocketAddress(serverAddress, getRandomServerPort())); //Verbindung zum Server
+                connection = new Socket(serverAddress, getRandomServerPort());
 
-                networkIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                networkOut = new PrintWriter(socket.getOutputStream());
+                networkIn = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                networkOut = new PrintWriter(connection.getOutputStream());
 
                 //TODO: Timestamp mitverschicken
-                networkOut.println(userLine); //Befehl an Server schicken
+                String request = id + "/" + userLine; //Befehl mit ID versehen
+                networkOut.println(request); //Befehl an Server schicken
                 networkOut.flush();
 
                 String answer = networkIn.readLine(); //Antwort vom Server lesen
@@ -51,7 +49,7 @@ public class Client {
                 for(String s : answerSplit)//Antwort vom Server anzeigen
                     System.out.println(s);
 
-                socket.close();
+                connection.close();
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -60,9 +58,14 @@ public class Client {
 
     public static void main(String[] args) {
         int clientPort = 1234;
-        if(args.length > 0)
-            clientPort = Integer.parseInt(args[0]);
+        int clientId = 0;
 
-        new Client(clientPort).start();
+        if(args.length > 0){
+            clientPort = Integer.parseInt(args[0]);
+            clientId = Integer.parseInt(args[0]);
+        }
+
+
+        new Client(clientId).start();
     }
 }
