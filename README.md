@@ -6,7 +6,7 @@ start first server class without paramaters `java Server`, the default parameter
 
 start second server with two ports, opposite of the first one, as parameters `java Server 8888 7777`
 
-start as many clients as you want with different ports each `java Client 2222`, the default port for Clients 1234
+start as many clients as you want with different ids each `java Client 1`, the default id for Clients 0
 
 
 ## Usage
