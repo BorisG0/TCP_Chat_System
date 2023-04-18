@@ -36,6 +36,7 @@ public class Server {
 
             System.out.println("Server started on port " + port + ", with second server on port " + port2);
             requestMessageSync(); //Nachrichten vom zweiten Server anfordern
+            syncMessagesToSecondServer(); //Nachrichten an zweiten Server senden, falls lokale Datei aktueller ist
 
             while (true) {
                 String lineOut = "ERROR"; //Antwort vom Server vorbereiten
@@ -86,6 +87,10 @@ public class Server {
 
     void requestMessageSync(){
         String serializedMessages = sendSyncCommand("RQSTMSG");
+
+        if(serializedMessages.equals("sync failed"))
+            return;
+
         handleMessageSync(serializedMessages);
     }
 

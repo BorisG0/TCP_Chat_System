@@ -27,7 +27,9 @@ public class DataToFileWriter {
             BufferedReader bufferedReader = new BufferedReader(fileReader);
             String line;
             while((line = bufferedReader.readLine()) != null){
-                messages.add(new Message(line));
+                if(line.length() > 0){
+                    messages.add(new Message(line));
+                }
             }
             bufferedReader.close();
         }catch (Exception e){
