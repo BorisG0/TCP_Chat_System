@@ -7,7 +7,7 @@ public class Server {
     public static final int DEFAULT_PORT = 7777;
 
     //TODO: Daten in Textdatei speichern
-    ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörter
+    ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörtern
     ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
     HashMap<String, UserData> userDataByName = new HashMap<>(); // Hilfsstruktur zum Bekommen der Nutzer zum Namen
@@ -45,10 +45,11 @@ public class Server {
                 String lineIn = in.readLine();
                 System.out.println("new request: '" + lineIn + "'");
 
-                String [] splitId = lineIn.split("/", 2); //Aufteilen in ID und Befehl
-                String senderId = splitId[0];
+                String [] requestSplit = lineIn.split("/", 3); //Aufteilen in ID, Zeitstempel und Befehl
+                String senderId = requestSplit[0];
+                String timestamp = requestSplit[1];
 
-                String[] commandSplit = splitId[1].split(" ", 2); //Aufteilen in Befehl und Parameter
+                String[] commandSplit = requestSplit[2].split(" ", 2); //Aufteilen in Befehl und Parameter
                 String command = commandSplit[0];
 
                 String parameter = "";
@@ -81,19 +82,16 @@ public class Server {
         }
     }
 
-    void syncMessagesToSecondServer(){
+    void sendSyncCommand(String command){
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String syncRequest = port + "/" + timestamp + "/" + command;
+        System.out.println("created sync request: " + syncRequest);
+
         try {
             Socket connection = new Socket("localhost", port2);
             PrintWriter out = new PrintWriter(connection.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
-            String data = "";
-            for(Message m : messages){ // alle gespeicherten Nachrichten
-                data += m.serialize() + ";";
-            }
-
-            String syncRequest = port + "/SYNCMSG " + data;
-            System.out.println("created sync request: " + syncRequest);
             out.println(syncRequest);
             out.flush();
 
@@ -102,8 +100,17 @@ public class Server {
 
             connection.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("sync failed");
         }
+    }
+
+    void syncMessagesToSecondServer(){
+        String data = "";
+        for(Message m : messages){ // alle gespeicherten Nachrichten
+            data += m.serialize() + ";";
+        }
+
+        sendSyncCommand("SYNCMSG " + data);
     }
 
     String handleMessageSyncRequest(String data){
@@ -123,29 +130,13 @@ public class Server {
 
 
     void syncLoginToSecondServer(){
-        try {
-            Socket connection = new Socket("localhost", port2);
-            PrintWriter out = new PrintWriter(connection.getOutputStream());
-            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String data = "";
 
-            String data = "";
-
-            for(String address : loggedInUsers.keySet()){
-                data += address + "-" + loggedInUsers.get(address) + ";";
-            }
-
-            String syncRequest = port + "/SYNCLOGIN " + data;
-            System.out.println("created sync request: " + syncRequest);
-            out.println(syncRequest);
-            out.flush();
-
-            String answer = in.readLine();
-            System.out.println("sync answer: " + answer);
-
-            connection.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        for(String address : loggedInUsers.keySet()){
+            data += address + "-" + loggedInUsers.get(address) + ";";
         }
+
+        sendSyncCommand("SYNCLOGIN " + data);
     }
 
     String handleLoginSyncRequest(String data){

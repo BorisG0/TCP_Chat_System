@@ -41,7 +41,8 @@ public class Client {
                         networkOut = new PrintWriter(connection.getOutputStream());
 
                         //TODO: Timestamp mitverschicken
-                        String request = id + "/" + userLine; //Befehl mit ID versehen
+                        String currentTime = String.valueOf(System.currentTimeMillis()); //aktuelle Zeit des Clients
+                        String request = id + "/" + currentTime + "/" + userLine; //Befehl mit ID versehen
                         networkOut.println(request); //Befehl an Server schicken
                         networkOut.flush();
 
@@ -50,7 +51,7 @@ public class Client {
                         connected = true;
                         System.out.println("Connected to server with port: " + serverPort);
                     }catch (Exception e){
-                        System.out.println("Server with port: " + serverPort + " not online, trying another one");
+                        System.out.println("Server with port: " + serverPort + " not online, trying another random one");
                     }
                 }
 
