@@ -60,7 +60,7 @@ public class Server {
                 if (command.equals("LOGIN")) {
                     lineOut = handleLogin(parameter, senderId);
                 }else if(command.equals("MSG")){
-                    lineOut = handleMessage(parameter, senderId);
+                    lineOut = handleMessage(parameter, senderId, timestamp);
                 }else if(command.equals("CONV")){
                     lineOut = handleGetConversation(parameter, senderId);
                 }else if(command.equals("SYNCMSG")) {
@@ -168,14 +168,14 @@ public class Server {
         return "ERROR: wrong username or password";
     }
 
-    String handleMessage(String data, String id){
+    String handleMessage(String data, String id, String timestamp){
         String[] messageData = data.split(" ", 2); //Teilen in Empfänger und Nachricht
         String message = messageData[1];
         String receiver = messageData[0];
 
         if(loggedInUsers.containsKey(id)){ //Prüfen ob Client angemeldet ist
             String sender = loggedInUsers.get(id);
-            messages.add(new Message(sender, receiver, message)); //Nachricht abspeichern
+            messages.add(new Message(sender, receiver, message, timestamp)); //Nachricht abspeichern
 
             syncMessagesToSecondServer();
 
@@ -222,22 +222,25 @@ public class Server {
         public String sender;
         public String receiver;
         public String message;
+        public String timestamp;
 
         Message(String serialized){
             String[] messageData = serialized.split("-", 3);
             this.sender = messageData[0];
             this.receiver = messageData[1];
-            this.message = messageData[2];
+            this.timestamp = messageData[2];
+            this.message = messageData[3];
         }
 
-        Message(String sender, String receiver, String message){
+        Message(String sender, String receiver, String message, String timestamp){
             this.sender = sender;
             this.receiver = receiver;
             this.message = message;
+            this.timestamp = String.valueOf(System.currentTimeMillis());
         }
 
         public String serialize(){
-            return sender + "-" + receiver + "-" + message;
+            return sender + "-" + receiver + "-" + timestamp + "-" + message;
         }
     }
 
