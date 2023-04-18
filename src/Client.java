@@ -30,26 +30,36 @@ public class Client {
         while(true){
             try{
                 String userLine = userIn.readLine(); //auf Tastatureingabe warten
+                String response = "";
 
                 //TODO: prüfen ob Server online
-                connection = new Socket(serverAddress, getRandomServerPort());
+                boolean connected = false;
 
-                networkIn = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                networkOut = new PrintWriter(connection.getOutputStream());
+                while(!connected){ //solange versuchen bis man sich mit einem Server verbunden hat
+                    int serverPort = getRandomServerPort();
+                    try{
+                        connection = new Socket(serverAddress, serverPort);
+                        networkIn = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        networkOut = new PrintWriter(connection.getOutputStream());
 
-                //TODO: Timestamp mitverschicken
-                String request = id + "/" + userLine; //Befehl mit ID versehen
-                networkOut.println(request); //Befehl an Server schicken
-                networkOut.flush();
+                        //TODO: Timestamp mitverschicken
+                        String request = id + "/" + userLine; //Befehl mit ID versehen
+                        networkOut.println(request); //Befehl an Server schicken
+                        networkOut.flush();
 
-                String answer = networkIn.readLine(); //Antwort vom Server lesen
+                        response = networkIn.readLine(); //Antwort vom Server lesen
 
-                String[] answerSplit = answer.split(";");
+                        connected = true;
+                    }catch (Exception e){
+                        System.out.println("Server with port: " + serverPort + " not online, trying another one");
+                    }
+                }
+
+                String[] answerSplit = response.split(";");
 
                 for(String s : answerSplit)//Antwort vom Server anzeigen
                     System.out.println(s);
 
-                connection.close();
             }catch (Exception e){
                 e.printStackTrace();
             }
