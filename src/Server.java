@@ -12,20 +12,22 @@ public class Server {
 
     int port, port2; //eigener Port und Port vom zweiten Server
 
-    Server(){
+    Server(int port, int port2){
+        this.port = port;
+        this.port2 = port2;
+
         //drei Anfangsnutzer initialisieren
         userData.add(new UserData("Tom", "111"));
         userDataByName.put("Tom", userData.get(0));
+
         userData.add(new UserData("Peter", "222"));
         userDataByName.put("Peter", userData.get(1));
+
         userData.add(new UserData("Heinz", "333"));
         userDataByName.put("Heinz", userData.get(2));
     }
 
-    public void start(int port, int port2){
-        this.port = port;
-        this.port2 = port2;
-
+    public void start(){
         this.messages = DataToFileWriter.readMessagesFromFile(String.valueOf(port)); //Nachrichten aus Datei laden
 
         try {
@@ -284,6 +286,6 @@ public class Server {
         if(args.length > 1){
             port2 = Integer.parseInt(args[1]);
         }
-        new Server().start(port, port2);
+        new Server(port, port2).start();
     }
 }
