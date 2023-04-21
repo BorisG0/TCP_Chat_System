@@ -6,11 +6,9 @@ public class Client {
     int id; //ID des Clients, damit der Server weiß, wo der Nutzer angemeldet ist
     ArrayList<Integer> serverPorts = new ArrayList<>();
 
-    Client(int id){
+    Client(int id, ArrayList<Integer> serverPorts){
         this.id = id;
-        serverPorts.add(7777);
-        serverPorts.add(7788);
-        serverPorts.add(8888);
+        this.serverPorts = serverPorts;
     }
 
     int getRandomServerPort(){
@@ -77,12 +75,22 @@ public class Client {
     public static void main(String[] args) {
         int clientId = 0; //StandartId festlegen
 
+        ArrayList<Integer> serverPorts = new ArrayList<>();
+        serverPorts.add(7777);
+        serverPorts.add(8888);
+
         //Id aus Argumenten auslesen
         if(args.length > 0){
             clientId = Integer.parseInt(args[0]);
         }
 
+        if(args.length > 1){
+            serverPorts.clear();
+            for(int i = 1; i < args.length; i++){
+                serverPorts.add(Integer.parseInt(args[i]));
+            }
+        }
 
-        new Client(clientId).start();
+        new Client(clientId, serverPorts).start();
     }
 }

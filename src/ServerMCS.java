@@ -128,7 +128,7 @@ public class ServerMCS {
     }
 
     boolean syncNewMessage(Message message){
-        ArrayList<Message> potentialNewMessages = (ArrayList<Message>) messages.clone();
+        potentialNewMessages = (ArrayList<Message>) messages.clone();
         potentialNewMessages.add(message);
 
         String serializedMessages = serializeMessages(potentialNewMessages);
@@ -218,14 +218,17 @@ public class ServerMCS {
 
         // nur syncen, wenn Anzahl der neuen Nachrichten größer als eigene ist, aber nicht mehr als um eine
         if(potentialNewMessages.size() != messages.size() + 1){
-            System.out.println("set my vot to NO because of different message count");
+            System.out.println("set my vote to NO because of different message count");
             return myVote;
         }
 
         // prüfen, ob alle vorherigen Nachrichten gleich sind
         for(int i = 0; i < messages.size(); i++){
-            if(!messages.get(i).equals(potentialNewMessages.get(i))){
-                System.out.println("set my vot to NO because of different messages");
+            if(!messages.get(i).serialize().equals(potentialNewMessages.get(i).serialize())){ //Nachrichten vergleichen
+                System.out.println("set my vote to NO because of different messages");
+
+                System.out.println("my messages: " + serializeMessages(messages));
+                System.out.println("other messages: " + serializeMessages(potentialNewMessages));
                 return myVote;
             }
         }
