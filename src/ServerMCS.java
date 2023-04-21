@@ -7,7 +7,7 @@ public class ServerMCS {
     ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörtern
     ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
-    boolean myTurnToVote = false; // Ob der Server als nächster voten darf
+    boolean voting = false;
     String myVote = "no response"; // aktuelles Votum des Servers
     ArrayList<Message> potentialNewMessages = new ArrayList<>(); // Nachrichten über die noch abgestimmt wird
 
@@ -16,15 +16,11 @@ public class ServerMCS {
 
     int port; //eigener Port
     ArrayList<Integer> serverPorts; //Ports der anderen Server
-    int predecessorId = -1; //ID des Vorgängers, -1 wenn es keinen gibt
+
 
     ServerMCS(int port, ArrayList<Integer> serverPorts){
         this.port = port;
         this.serverPorts = serverPorts;
-
-        //Server stehen in einer Hierarchie, kleinere IDs voten zuerst
-        if((serverPorts.size() > 0) && (serverPorts.get(0) < port))
-            this.predecessorId = serverPorts.get(0); //Vorgänger ist der erste Server in der Liste
 
         //drei Anfangsnutzer initialisieren
         userData.add(new UserData("Tom", "111"));
@@ -83,10 +79,10 @@ public class ServerMCS {
                         lineOut = handleLoginSync(parameter);
                         break;
                     case "NEWVOTING":
-                        lineOut = handleNewVoting(parameter, Integer.parseInt(senderId));
+                        lineOut = handleNewVoting(parameter);
                         break;
                     case "VOTE":
-                        lineOut = handleVote(Integer.parseInt(senderId));
+                        lineOut = handleVote();
                         break;
                 }
 
@@ -97,14 +93,41 @@ public class ServerMCS {
 
                 connection.close();
 
-                if(myTurnToVote) //Wenn gerade abgestimmt wird, dann nach jeder Anfrage die Votes checken
-                    collectVotes();
+                if(voting){
+                    new Thread(new VoteCollector()).start();
+                    voting = false;
+                }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    class VoteCollector implements Runnable{
+
+        VoteCollector(){
+
+        }
+        @Override
+        public void run(){
+            ArrayList<String> votes = new ArrayList<>();
+            votes.add(myVote); //eigener Vote
+
+            for(int serverPort: serverPorts){
+                String vote = sendCommand("VOTE", serverPort);
+                votes.add(vote);
+            }
+
+            boolean majority = checkVotes(votes);
+
+            if(majority){
+                messages = potentialNewMessages;
+                DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
+            }
+        }
+    }
+
 
     String serializeMessages(ArrayList<Message> messages){
         String serializedMessages = "";
@@ -148,30 +171,9 @@ public class ServerMCS {
             messages = potentialNewMessages;
             DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
         }
-
-        if(predecessorId == -1) myTurnToVote = true;
-
         return majority;
     }
 
-    void collectVotes(){
-        ArrayList<String> votes = new ArrayList<>();
-        votes.add(myVote); //eigener Vote
-
-        for(int serverPort: serverPorts){
-            String vote = sendCommand("VOTE", serverPort);
-            votes.add(vote);
-        }
-
-        boolean majority = checkVotes(votes);
-
-        if(majority){
-            messages = potentialNewMessages;
-            DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
-        }
-
-        myTurnToVote = false;
-    }
 
     boolean checkVotes(ArrayList<String> votes){
         int yes = 0;
@@ -210,15 +212,13 @@ public class ServerMCS {
         return "no response";
     }
 
-    String handleNewVoting(String serializedMessages, int voteStarterId){ //Sync Befehl verarbeiten
-        if(predecessorId == -1){
-            myTurnToVote = true;
-        }
+    String handleNewVoting(String serializedMessages){ //Start der Abstimmung
+        voting = true;
         myVote = "NO";
 
         potentialNewMessages = deserializeMessages(serializedMessages);
 
-        // nur syncen, wenn Anzahl der neuen Nachrichten größer als eigene ist, aber nicht mehr als um eine
+        // nur akzeptieren, wenn Anzahl der neuen Nachrichten größer als eigene ist, aber nicht mehr als um eine
         if(potentialNewMessages.size() != messages.size() + 1){
             System.out.println("set my vote to NO because of different message count");
             return myVote;
@@ -235,12 +235,12 @@ public class ServerMCS {
             }
         }
 
+        // alle Akzeptanzbedingungen erfüllt, also JA stimmen
         myVote = "YES";
         return myVote;
     }
 
-    String handleVote(int voterId){ //Vote Befehl verarbeiten
-        if(voterId == predecessorId) myTurnToVote = true;
+    String handleVote(){ //Vote Befehl verarbeiten
         return myVote;
     }
 
@@ -336,11 +336,11 @@ public class ServerMCS {
 
     public static void main(String[] args) {
         //Standartports
-        int port = 7777;
+        int port = 7770;
 
         ArrayList<Integer> otherPorts = new ArrayList<>();
-        otherPorts.add(8888);
-        otherPorts.add(7788);
+        otherPorts.add(7771);
+        otherPorts.add(7772);
 
         //Ports können als Argumente übergeben werden
         if(args.length > 0){
