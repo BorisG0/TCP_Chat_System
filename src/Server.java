@@ -10,7 +10,7 @@ public class Server {
     HashMap<String, UserData> userDataByName = new HashMap<>(); // Hilfsstruktur zum Bekommen der Nutzer zum Namen
     HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welcher Client auf welchen Nutzer angemeldet ist
 
-    int port, port2;
+    int port, port2; //eigener Port und Port vom zweiten Server
 
     Server(){
         //3 Anfangsnutzer initialisieren
@@ -23,8 +23,8 @@ public class Server {
     }
 
     public void start(int port, int port2){
-        this.port = port; //eigener Port
-        this.port2 = port2; //Port vom zweiten Server
+        this.port = port;
+        this.port2 = port2;
 
         this.messages = DataToFileWriter.readMessagesFromFile(port + ""); //Nachrichten aus Datei laden
 
@@ -44,7 +44,7 @@ public class Server {
                 connection = server.accept(); //auf neue Verbindung warten
                 in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
-                String lineIn = in.readLine();
+                String lineIn = in.readLine(); //Anfrage lesen
                 System.out.println("new request: '" + lineIn + "'");
 
                 String [] requestSplit = lineIn.split("/", 3); //Aufteilen in ID, Zeitstempel und Befehl
@@ -59,20 +59,29 @@ public class Server {
                     parameter = commandSplit[1];
 
 
-                if (command.equals("LOGIN")) {
-                    lineOut = handleLogin(parameter, senderId);
-                }else if(command.equals("MSG")){
-                    lineOut = handleMessage(parameter, senderId, timestamp);
-                }else if(command.equals("CONV")){
-                    lineOut = handleGetConversation(parameter, senderId);
-                }else if(command.equals("SYNCMSG")) {
-                    lineOut = handleMessageSync(parameter);
-                }else if(command.equals("SYNCLOGIN")) {
-                    lineOut = handleLoginSync(parameter);
-                }else if(command.equals("RQSTMSG")) {
-                    lineOut = handleRequestMessageSync();
-                }else if(command.equals("RQSTLOGIN")) {
-                    lineOut = handleRequestLoginSync();
+                //entsprechende Methode zum Befehl aufrufen
+                switch (command) {
+                    case "LOGIN":
+                        lineOut = handleLogin(parameter, senderId);
+                        break;
+                    case "MSG":
+                        lineOut = handleMessage(parameter, senderId, timestamp);
+                        break;
+                    case "CONV":
+                        lineOut = handleGetConversation(parameter, senderId);
+                        break;
+                    case "SYNCMSG":
+                        lineOut = handleMessageSync(parameter);
+                        break;
+                    case "SYNCLOGIN":
+                        lineOut = handleLoginSync(parameter);
+                        break;
+                    case "RQSTMSG":
+                        lineOut = handleRequestMessageSync();
+                        break;
+                    case "RQSTLOGIN":
+                        lineOut = handleRequestLoginSync();
+                        break;
                 }
 
                 System.out.println("sending response: '" + lineOut + "'");
@@ -88,7 +97,7 @@ public class Server {
         }
     }
 
-    void requestMessageSync(){
+    void requestMessageSync(){ //Anfrage an zweiten Server für einen Sync der Messages senden
         String serializedMessages = sendSyncCommand("RQSTMSG");
 
         if(serializedMessages.equals("sync failed"))
@@ -97,7 +106,7 @@ public class Server {
         handleMessageSync(serializedMessages);
     }
 
-    void requestLoginSync(){
+    void requestLoginSync(){ //Anfrage an zweiten Server für einen Sync der Logins senden
         String serializedLogins = sendSyncCommand("RQSTLOGIN");
 
         if(serializedLogins.equals("sync failed"))
@@ -106,7 +115,7 @@ public class Server {
         handleLoginSync(serializedLogins);
     }
 
-    String handleRequestMessageSync(){
+    String handleRequestMessageSync(){ //Anfrage vom zweiten Server für einen Sync der Messages bearbeiten
         String data = "";
         for(Message m : messages){ // alle gespeicherten Nachrichten
             data += m.serialize() + ";";
@@ -114,39 +123,39 @@ public class Server {
         return data;
     }
 
-    String handleRequestLoginSync(){
+    String handleRequestLoginSync(){ //Anfrage vom zweiten Server für einen Sync der Messages bearbeiten
         String data = "";
-        for(String address : loggedInUsers.keySet()){
+        for(String address : loggedInUsers.keySet()){ //alle angemeldeten Nutzer und ihre ClientIDs
             data += address + "-" + loggedInUsers.get(address) + ";";
         }
         return data;
     }
 
-    String sendSyncCommand(String command){
+    String sendSyncCommand(String command){ //verschiedene Sync Befehle an den zweiten Server senden
         String timestamp = String.valueOf(System.currentTimeMillis());
-        String syncRequest = port + "/" + timestamp + "/" + command;
+        String syncRequest = port + "/" + timestamp + "/" + command; //Details zum Befehl hinzufügen
         System.out.println("created sync command: " + syncRequest);
 
         try {
-            Socket connection = new Socket("localhost", port2);
+            Socket connection = new Socket("localhost", port2); //verbinden mit zweitem Server
             PrintWriter out = new PrintWriter(connection.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 
             out.println(syncRequest);
-            out.flush();
+            out.flush(); //Befehl absenden
 
-            String answer = in.readLine();
+            String answer = in.readLine(); //Antwort lesen
             System.out.println("sync answer: " + answer);
 
             connection.close();
-            return answer;
+            return answer; //Antwort zurückgeben, falls von anderen Methoden gebraucht
         } catch (Exception e) {
             System.out.println("sync failed");
         }
         return "sync failed";
     }
 
-    void syncMessagesToSecondServer(){
+    void syncMessagesToSecondServer(){ //alle Nachrichten an zweiten Server senden
         String data = "";
         for(Message m : messages){ // alle gespeicherten Nachrichten
             data += m.serialize() + ";";
@@ -155,7 +164,7 @@ public class Server {
         sendSyncCommand("SYNCMSG " + data);
     }
 
-    String handleMessageSync(String data){
+    String handleMessageSync(String data){ //Nachrichten vom zweiten Server empfangen und speichern
         if(data.length() == 0)
             return "message sync not necessary";
 
@@ -176,7 +185,7 @@ public class Server {
     }
 
 
-    void syncLoginToSecondServer(){
+    void syncLoginToSecondServer(){ //alle angemeldeten Nutzer an zweiten Server senden
         String data = "";
 
         for(String address : loggedInUsers.keySet()){
@@ -186,7 +195,7 @@ public class Server {
         sendSyncCommand("SYNCLOGIN " + data);
     }
 
-    String handleLoginSync(String data){
+    String handleLoginSync(String data){ //angemeldete Nutzer vom zweiten Server empfangen und speichern
         if (data.length() == 0)
             return "login sync not necessary";
 
@@ -200,7 +209,7 @@ public class Server {
         return "login sync successful";
     }
 
-    String handleLogin(String data, String id){
+    String handleLogin(String data, String id){ //Nutzer auf ClientId anmelden
         String[] loginData = data.split(" ", 2); //Teilen in Name und Passwort
 
         String name = loginData[0];
@@ -218,7 +227,7 @@ public class Server {
         return "ERROR: wrong username or password";
     }
 
-    String handleMessage(String data, String id, String timestamp){
+    String handleMessage(String data, String id, String timestamp){ //Nachricht von Client empfangen und speichern
         String[] messageData = data.split(" ", 2); //Teilen in Empfänger und Nachricht
         String message = messageData[1];
         String receiver = messageData[0];
@@ -237,7 +246,7 @@ public class Server {
     }
 
 
-    String handleGetConversation(String data, String id){
+    String handleGetConversation(String data, String id){ //Unterhaltung mit einer Person zurückgeben
         if(loggedInUsers.containsKey(id)){ //Prüfen ob Adresse angemeldet ist
             String allMessages = "";
             String user = loggedInUsers.get(id);
@@ -254,13 +263,7 @@ public class Server {
         }
     }
 
-    void printLoggedInUsers(){
-        for(String key : loggedInUsers.keySet()){
-            System.out.println("logged in user: " + loggedInUsers.get(key) + " on address: " + key);
-        }
-    }
-
-    class UserData {
+    class UserData { //Klasse für Nutzerdaten
         UserData(String name, String password){
             this.name = name;
             this.password = password;
@@ -270,9 +273,11 @@ public class Server {
     }
 
     public static void main(String[] args) {
+        //Standartports für den ersten und zweiten Server
         int port = 7777;
         int port2 = 8888;
 
+        //Ports können als Argumente übergeben werden
         if(args.length > 0){
             port = Integer.parseInt(args[0]);
         }

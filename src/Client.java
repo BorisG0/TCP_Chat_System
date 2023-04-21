@@ -3,7 +3,7 @@ import java.net.*;
 import java.util.ArrayList;
 
 public class Client {
-    int id;
+    int id; //ID des Clients, damit der Server weiß, wo der Nutzer angemeldet ist
     ArrayList<Integer> serverPorts = new ArrayList<>();
 
     Client(int id){
@@ -47,7 +47,6 @@ public class Client {
                         networkIn = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                         networkOut = new PrintWriter(connection.getOutputStream());
 
-                        //TODO: Timestamp mitverschicken
                         String currentTime = String.valueOf(System.currentTimeMillis()); //aktuelle Zeit des Clients
                         String request = id + "/" + currentTime + "/" + userLine; //Befehl mit ID versehen
                         networkOut.println(request); //Befehl an Server schicken
