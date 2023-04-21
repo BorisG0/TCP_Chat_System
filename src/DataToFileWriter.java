@@ -7,7 +7,7 @@ import java.util.ArrayList;
 public class DataToFileWriter {
     public static void writeMessagesToFile(ArrayList<Message> messages, String filename){
         try {
-            // damit jeder Server seine eigenen Nachrichten speichert muss der Dateiname der Port sein
+            // damit jeder Server seine eigenen Nachrichten speichert, muss der Dateiname der Port sein
             FileWriter fileWriter = new FileWriter(filename + ".txt");
             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
             for(Message m : messages){

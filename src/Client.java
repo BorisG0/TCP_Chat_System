@@ -37,7 +37,7 @@ public class Client {
                 while(!connected){ //solange versuchen bis man sich mit einem Server verbunden hat
                     if(tries >= 100){ //bei 100 Versuchen abbrechen, und auf neue Nutzereingabe warten
                         System.out.println("No server online, try again later");
-                        continue mainLoop;
+                        continue mainLoop; //Rest des mainLoops überspringen
                     }
 
                     int serverPort = getRandomServerPort();

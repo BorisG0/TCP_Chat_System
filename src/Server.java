@@ -13,7 +13,7 @@ public class Server {
     int port, port2; //eigener Port und Port vom zweiten Server
 
     Server(){
-        //3 Anfangsnutzer initialisieren
+        //drei Anfangsnutzer initialisieren
         userData.add(new UserData("Tom", "111"));
         userDataByName.put("Tom", userData.get(0));
         userData.add(new UserData("Peter", "222"));
@@ -29,7 +29,7 @@ public class Server {
         this.messages = DataToFileWriter.readMessagesFromFile(port + ""); //Nachrichten aus Datei laden
 
         try {
-            ServerSocket server = new ServerSocket(port);
+            ServerSocket server = new ServerSocket(port); // ServerSocket mit eingegebenem Port starten
             Socket connection;
             PrintWriter out;
             BufferedReader in;

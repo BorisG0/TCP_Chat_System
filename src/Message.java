@@ -4,7 +4,7 @@ public class Message{
     public String message;
     public String timestamp;
 
-    Message(String serialized){
+    Message(String serialized){ //Nachricht aus String erstellen
         String[] messageData = serialized.split("-", 4);
         this.sender = messageData[0];
         this.receiver = messageData[1];
@@ -16,10 +16,10 @@ public class Message{
         this.sender = sender;
         this.receiver = receiver;
         this.message = message;
-        this.timestamp = String.valueOf(System.currentTimeMillis());
+        this.timestamp = timestamp;
     }
 
-    public String serialize(){
+    public String serialize(){ //Nachricht in String konvertieren
         return sender + "-" + receiver + "-" + timestamp + "-" + message;
     }
 }
