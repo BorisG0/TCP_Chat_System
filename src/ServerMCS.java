@@ -7,6 +7,10 @@ public class ServerMCS {
     ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörtern
     ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
+    boolean voting = false; // Ob gerade abgestimmt wird
+    String myVote = "no response"; // aktuelles Votum des Servers
+    ArrayList<Message> potentialNewMessages = new ArrayList<>(); // Nachrichten über die noch abgestimmt wird
+
     HashMap<String, UserData> userDataByName = new HashMap<>(); // Hilfsstruktur zum Bekommen der Nutzer zum Namen
     HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welcher Client auf welchen Nutzer angemeldet ist
 
@@ -70,8 +74,11 @@ public class ServerMCS {
                     case "CONV":
                         lineOut = handleGetConversation(parameter, senderId);
                         break;
-                    case "SYNC":
-                        lineOut = handleSync(parameter);
+                    case "NEWVOTING":
+                        lineOut = handleNewVoting(parameter);
+                        break;
+                    case "VOTE":
+                        lineOut = handleVote();
                         break;
                 }
 
@@ -81,6 +88,9 @@ public class ServerMCS {
                 out.flush();
 
                 connection.close();
+
+                if(voting) //Wenn gerade abgestimmt wird, dann nach jeder Anfrage die Votes checken
+                    collectVotes();
             }
 
         } catch (Exception e) {
@@ -116,9 +126,11 @@ public class ServerMCS {
         String serializedMessages = serializeMessages(potentialNewMessages);
 
         ArrayList<String> votes = new ArrayList<>();
+        myVote = "YES";
+        votes.add(myVote); //eigener Vote
 
         for(int serverPort: serverPorts){
-            String vote = sendCommand("SYNC " + serializedMessages, serverPort);
+            String vote = sendCommand("NEWVOTING " + serializedMessages, serverPort);
             votes.add(vote);
         }
 
@@ -131,6 +143,25 @@ public class ServerMCS {
         return majority;
     }
 
+    void collectVotes(){
+        ArrayList<String> votes = new ArrayList<>();
+        votes.add(myVote); //eigener Vote
+
+        for(int serverPort: serverPorts){
+            String vote = sendCommand("VOTE", serverPort);
+            votes.add(vote);
+        }
+
+        boolean majority = checkVotes(votes);
+
+        if(majority){
+            messages = potentialNewMessages;
+            DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
+        }
+
+        voting = false;
+    }
+
     boolean checkVotes(ArrayList<String> votes){
         int yes = 0;
         int no = 0;
@@ -141,7 +172,7 @@ public class ServerMCS {
             else System.out.println("invalid vote: " + vote);
         }
 
-        return yes >= no; // >= , da server selbst noch als "YES" mitzählt
+        return yes > no;
     }
 
     String sendCommand(String command, int port){ //verschiedene Sync Befehle an bestimmten Server senden
@@ -158,7 +189,7 @@ public class ServerMCS {
             out.flush(); //Befehl absenden
 
             String answer = in.readLine(); //Antwort lesen
-            System.out.println("received response: " + answer);
+            System.out.println("received response from " + port + ": " + answer);
 
             connection.close();
             return answer; //Antwort zurückgeben, falls von anderen Methoden gebraucht
@@ -168,21 +199,26 @@ public class ServerMCS {
         return "no response";
     }
 
-    String handleSync(String serializedMessages){ //Sync Befehl verarbeiten
+    String handleNewVoting(String serializedMessages){ //Sync Befehl verarbeiten
+        voting = true;
+        myVote = "NO";
+
         ArrayList<Message> potentialNewMessages = deserializeMessages(serializedMessages);
 
         // nur syncen, wenn Anzahl der neuen Nachrichten größer als eigene ist, aber nicht mehr als um eine
-        if(potentialNewMessages.size() != messages.size() + 1) return "NO";
+        if(potentialNewMessages.size() != messages.size() + 1) return myVote;
 
         // prüfen, ob alle vorherigen Nachrichten gleich sind
         for(int i = 0; i < messages.size(); i++){
-            if(!messages.get(i).equals(potentialNewMessages.get(i))) return "NO";
+            if(!messages.get(i).equals(potentialNewMessages.get(i))) return myVote;
         }
 
-        // neue Nachrichten übernehmen
-        messages = potentialNewMessages;
-        DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
-        return "YES";
+        myVote = "YES";
+        return myVote;
+    }
+
+    String handleVote(){ //Vote Befehl verarbeiten
+        return myVote;
     }
 
     String handleLogin(String data, String id){ //Nutzer auf ClientId anmelden
@@ -215,7 +251,7 @@ public class ServerMCS {
         boolean success = syncNewMessage(message);
 
         if(success){
-            return "Message from '" + sender + "' to '" + receiver + "': " + message;
+            return "Message from '" + sender + "' to '" + receiver + "': " + content;
         }else{
             return "no consensus";
         }
