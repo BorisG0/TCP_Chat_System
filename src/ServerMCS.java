@@ -7,7 +7,7 @@ public class ServerMCS {
     ArrayList<UserData> userData = new ArrayList<>(); // Speichern aller Nutzer mit Passwörtern
     ArrayList<Message> messages = new ArrayList<>(); // Alle verschickten Nachrichten
 
-    boolean voting = false; // Ob gerade abgestimmt wird
+    boolean myTurnToVote = false; // Ob der Server als nächster voten darf
     String myVote = "no response"; // aktuelles Votum des Servers
     ArrayList<Message> potentialNewMessages = new ArrayList<>(); // Nachrichten über die noch abgestimmt wird
 
@@ -15,11 +15,16 @@ public class ServerMCS {
     HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welcher Client auf welchen Nutzer angemeldet ist
 
     int port; //eigener Port
-    ArrayList<Integer> serverPorts = new ArrayList<>(); //Ports der anderen Server
+    ArrayList<Integer> serverPorts; //Ports der anderen Server
+    int predecessorId = -1; //ID des Vorgängers, -1 wenn es keinen gibt
 
     ServerMCS(int port, ArrayList<Integer> serverPorts){
         this.port = port;
         this.serverPorts = serverPorts;
+
+        //Server stehen in einer Hierarchie, kleinere IDs voten zuerst
+        if((serverPorts.size() > 0) && (serverPorts.get(0) < port))
+            this.predecessorId = serverPorts.get(0); //Vorgänger ist der erste Server in der Liste
 
         //drei Anfangsnutzer initialisieren
         userData.add(new UserData("Tom", "111"));
@@ -74,11 +79,14 @@ public class ServerMCS {
                     case "CONV":
                         lineOut = handleGetConversation(parameter, senderId);
                         break;
+                    case "SYNCLOGIN":
+                        lineOut = handleLoginSync(parameter);
+                        break;
                     case "NEWVOTING":
-                        lineOut = handleNewVoting(parameter);
+                        lineOut = handleNewVoting(parameter, Integer.parseInt(senderId));
                         break;
                     case "VOTE":
-                        lineOut = handleVote();
+                        lineOut = handleVote(Integer.parseInt(senderId));
                         break;
                 }
 
@@ -89,7 +97,7 @@ public class ServerMCS {
 
                 connection.close();
 
-                if(voting) //Wenn gerade abgestimmt wird, dann nach jeder Anfrage die Votes checken
+                if(myTurnToVote) //Wenn gerade abgestimmt wird, dann nach jeder Anfrage die Votes checken
                     collectVotes();
             }
 
@@ -129,7 +137,8 @@ public class ServerMCS {
         myVote = "YES";
         votes.add(myVote); //eigener Vote
 
-        for(int serverPort: serverPorts){
+        for(int i = serverPorts.size() - 1; i >= 0; i--){
+            int serverPort = serverPorts.get(i);
             String vote = sendCommand("NEWVOTING " + serializedMessages, serverPort);
             votes.add(vote);
         }
@@ -159,7 +168,7 @@ public class ServerMCS {
             DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
         }
 
-        voting = false;
+        myTurnToVote = false;
     }
 
     boolean checkVotes(ArrayList<String> votes){
@@ -199,25 +208,34 @@ public class ServerMCS {
         return "no response";
     }
 
-    String handleNewVoting(String serializedMessages){ //Sync Befehl verarbeiten
-        voting = true;
+    String handleNewVoting(String serializedMessages, int voteStarterId){ //Sync Befehl verarbeiten
+        if(voteStarterId == predecessorId || predecessorId == -1){
+            myTurnToVote = true;
+        }
         myVote = "NO";
 
-        ArrayList<Message> potentialNewMessages = deserializeMessages(serializedMessages);
+        potentialNewMessages = deserializeMessages(serializedMessages);
 
         // nur syncen, wenn Anzahl der neuen Nachrichten größer als eigene ist, aber nicht mehr als um eine
-        if(potentialNewMessages.size() != messages.size() + 1) return myVote;
+        if(potentialNewMessages.size() != messages.size() + 1){
+            System.out.println("set my vot to NO because of different message count");
+            return myVote;
+        }
 
         // prüfen, ob alle vorherigen Nachrichten gleich sind
         for(int i = 0; i < messages.size(); i++){
-            if(!messages.get(i).equals(potentialNewMessages.get(i))) return myVote;
+            if(!messages.get(i).equals(potentialNewMessages.get(i))){
+                System.out.println("set my vot to NO because of different messages");
+                return myVote;
+            }
         }
 
         myVote = "YES";
         return myVote;
     }
 
-    String handleVote(){ //Vote Befehl verarbeiten
+    String handleVote(int voterId){ //Vote Befehl verarbeiten
+        if(voterId == predecessorId) myTurnToVote = true;
         return myVote;
     }
 
@@ -231,10 +249,23 @@ public class ServerMCS {
             if (user.name.equals(name) && user.password.equals(password)) {
                 loggedInUsers.put(id, user.name); //ID mit User verknüpfen
 
+                syncLogins();
                 return "Logged in as '" + user.name + "' on client with id: " + id;
             }
         }
         return "ERROR: wrong username or password";
+    }
+
+    void syncLogins(){
+        String serializedLogins = "";
+
+        for(String id: loggedInUsers.keySet()){
+            serializedLogins += id + "-" + loggedInUsers.get(id) + ";";
+        }
+
+        for(int serverPort: serverPorts){
+            sendCommand("SYNCLOGIN " + serializedLogins, serverPort);
+        }
     }
 
     String handleMessage(String data, String id, String timestamp){ //Nachricht von Client empfangen und speichern
@@ -273,6 +304,20 @@ public class ServerMCS {
         }else {
             return "ERROR: You are not logged in!";
         }
+    }
+
+    String handleLoginSync(String data){ //Login Sync funktioniert ohne MCS
+        if (data.length() == 0)
+            return "login sync not necessary";
+
+        String[] logins = data.split(";");
+
+        for(String login : logins){
+            String[] loginData = login.split("-");
+            loggedInUsers.put(loginData[0], loginData[1]);
+        }
+
+        return "login sync successful";
     }
 
     class UserData { //Klasse für Nutzerdaten
