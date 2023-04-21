@@ -24,6 +24,9 @@ public class Client {
         String serverAddress = "localhost"; // or "127.0.0.1"
 
         System.out.println("Client started with id " + id);
+        System.out.println("and server ports:");
+        for(int i : serverPorts)
+            System.out.println(i);
 
 
         mainLoop: while(true){
