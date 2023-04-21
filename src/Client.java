@@ -27,14 +27,21 @@ public class Client {
         System.out.println("Client started with id " + id);
 
 
-        while(true){
+        mainLoop: while(true){
             try{
                 String userLine = userIn.readLine(); //auf Tastatureingabe warten
                 String response = "";
 
                 boolean connected = false;
+                int tries = 0;
                 while(!connected){ //solange versuchen bis man sich mit einem Server verbunden hat
+                    if(tries >= 100){ //bei 100 Versuchen abbrechen, und auf neue Nutzereingabe warten
+                        System.out.println("No server online, try again later");
+                        continue mainLoop;
+                    }
+
                     int serverPort = getRandomServerPort();
+                    tries++;
                     try{
                         connection = new Socket(serverAddress, serverPort);
                         networkIn = new BufferedReader(new InputStreamReader(connection.getInputStream()));
