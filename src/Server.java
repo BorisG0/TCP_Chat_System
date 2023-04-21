@@ -26,7 +26,7 @@ public class Server {
         this.port = port;
         this.port2 = port2;
 
-        this.messages = DataToFileWriter.readMessagesFromFile(port + ""); //Nachrichten aus Datei laden
+        this.messages = DataToFileWriter.readMessagesFromFile(String.valueOf(port)); //Nachrichten aus Datei laden
 
         try {
             ServerSocket server = new ServerSocket(port); // ServerSocket mit eingegebenem Port starten
@@ -123,7 +123,7 @@ public class Server {
         return data;
     }
 
-    String handleRequestLoginSync(){ //Anfrage vom zweiten Server für einen Sync der Messages bearbeiten
+    String handleRequestLoginSync(){ //Anfrage vom zweiten Server für einen Sync der Logins bearbeiten
         String data = "";
         for(String address : loggedInUsers.keySet()){ //alle angemeldeten Nutzer und ihre ClientIDs
             data += address + "-" + loggedInUsers.get(address) + ";";
@@ -170,7 +170,7 @@ public class Server {
 
         String[] messages = data.split(";");
 
-        //nicht syncen wenn Anzahl der Nachrichten kleiner oder gleich der eigenen ist
+        //nicht syncen, wenn Anzahl der Nachrichten kleiner oder gleich der eigenen ist
         if(messages.length <= this.messages.size())
             return "message sync not necessary";
 
@@ -180,7 +180,7 @@ public class Server {
             this.messages.add(new Message(m));
         }
         System.out.println("synced messages from second server");
-        DataToFileWriter.writeMessagesToFile(this.messages, port + ""); //Nachrichten in Datei speichern
+        DataToFileWriter.writeMessagesToFile(this.messages, String.valueOf(port)); //Nachrichten in Datei speichern
         return "message sync successful";
     }
 
@@ -237,7 +237,7 @@ public class Server {
             messages.add(new Message(sender, receiver, message, timestamp)); //Nachricht abspeichern
 
             syncMessagesToSecondServer();
-            DataToFileWriter.writeMessagesToFile(messages, port + "");
+            DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
 
             return "Message from '" + sender + "' to '" + receiver + "': " + message;
         }else {
