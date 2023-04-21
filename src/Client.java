@@ -74,11 +74,10 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        int clientPort = 1234;
-        int clientId = 0;
+        int clientId = 0; //StandartId festlegen
 
+        //Id aus Argumenten auslesen
         if(args.length > 0){
-            clientPort = Integer.parseInt(args[0]);
             clientId = Integer.parseInt(args[0]);
         }
 
