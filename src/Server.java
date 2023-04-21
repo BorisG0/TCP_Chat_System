@@ -36,6 +36,7 @@ public class Server {
 
             System.out.println("Server started on port " + port + ", with second server on port " + port2);
             requestMessageSync(); //Nachrichten vom zweiten Server anfordern
+            requestLoginSync(); //Angemeldete Nutzer vom zweiten Server anfordern
             syncMessagesToSecondServer(); //Nachrichten an zweiten Server senden, falls lokale Datei aktueller ist
 
             while (true) {
@@ -70,6 +71,8 @@ public class Server {
                     lineOut = handleLoginSync(parameter);
                 }else if(command.equals("RQSTMSG")) {
                     lineOut = handleRequestMessageSync();
+                }else if(command.equals("RQSTLOGIN")) {
+                    lineOut = handleRequestLoginSync();
                 }
 
                 System.out.println("sending response: '" + lineOut + "'");
@@ -94,10 +97,27 @@ public class Server {
         handleMessageSync(serializedMessages);
     }
 
+    void requestLoginSync(){
+        String serializedLogins = sendSyncCommand("RQSTLOGIN");
+
+        if(serializedLogins.equals("sync failed"))
+            return;
+
+        handleLoginSync(serializedLogins);
+    }
+
     String handleRequestMessageSync(){
         String data = "";
         for(Message m : messages){ // alle gespeicherten Nachrichten
             data += m.serialize() + ";";
+        }
+        return data;
+    }
+
+    String handleRequestLoginSync(){
+        String data = "";
+        for(String address : loggedInUsers.keySet()){
+            data += address + "-" + loggedInUsers.get(address) + ";";
         }
         return data;
     }
@@ -167,6 +187,9 @@ public class Server {
     }
 
     String handleLoginSync(String data){
+        if (data.length() == 0)
+            return "login sync not necessary";
+
         String[] logins = data.split(";");
 
         for(String login : logins){
