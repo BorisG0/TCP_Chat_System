@@ -9,7 +9,7 @@ public class Client {
     Client(int id){
         this.id = id;
         serverPorts.add(7777);
-        serverPorts.add(8888);
+        //serverPorts.add(8888);
     }
 
     int getRandomServerPort(){
