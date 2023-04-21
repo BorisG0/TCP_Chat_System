@@ -149,6 +149,8 @@ public class ServerMCS {
             DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
         }
 
+        if(predecessorId == -1) myTurnToVote = true;
+
         return majority;
     }
 
@@ -209,7 +211,7 @@ public class ServerMCS {
     }
 
     String handleNewVoting(String serializedMessages, int voteStarterId){ //Sync Befehl verarbeiten
-        if(voteStarterId == predecessorId || predecessorId == -1){
+        if(predecessorId == -1){
             myTurnToVote = true;
         }
         myVote = "NO";
