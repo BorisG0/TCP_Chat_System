@@ -29,11 +29,9 @@ there are 3 users predefined in the code of the server class:
 
 ### Client
 
-give each client a unique id
+clients are started with an id followed by any number of server ports as parameters
 
-all other parameters after the id are server ports
-
-use `java Client [client id] [server port 1] [server port 2]` to start a client
+use `java Client [client id] [server port 1] [server port 2] ...` to start a client
 
 the default parameters are 0 7777 8888
 
@@ -45,10 +43,14 @@ start second server with two ports, opposite of the first one, as parameters `ja
 
 ### Majority Consensus Strategy Servers
 
-servers are started with 3 or more arguments `java ServerMCS [port of server] [port of predecessor] [all other ports]`
+servers are started with their own port as the first parameter and the ports of all other servers as the following parameters
 
-start first server class without paramaters `java Server`, the default parameters are 7777 7788 8888
+example `java ServerMCS [port of server] [other port 1] [other ports 2] ...`
 
-start second server using `java Server 7788 7777 8888`
+start first server class without parameters `java Server`, the default parameters are 7770 7771 7772
 
-start third server using `java Server 8888 7788 7777`
+start second server using `java Server 7771 7770 7772`
+
+start third server using `java Server 7772 7770 7771`
+
+and the client with `java ClientMCS 0 7770 7771 7772`
