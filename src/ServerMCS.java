@@ -178,10 +178,11 @@ public class ServerMCS {
 
         for(String vote: votes){
             if(vote.equals("YES")) yes++;
-            else if(vote.equals("NO")) no++;
-            else System.out.println("invalid vote: " + vote);
+            else{
+                no++;
+            }
         }
-
+        System.out.println("yes: " + yes + " no: " + no);
         return yes > no;
     }
 
