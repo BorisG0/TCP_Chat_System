@@ -69,11 +69,21 @@ public class ServerMCS {
 
                 //entsprechende Methode zum Befehl aufrufen
                 switch (command) {
-                    case "LOGIN" -> lineOut = handleLogin(parameter, senderId);
-                    case "MSG" -> lineOut = handleMessage(parameter, senderId, timestamp);
-                    case "CONV" -> lineOut = handleGetConversation(parameter, senderId);
-                    case "SYNCLOGIN" -> lineOut = handleLoginSync(parameter);
-                    case "VOTE" -> lineOut = handleVote(parameter);
+                    case "LOGIN":
+                        lineOut = handleLogin(parameter, senderId);
+                        break;
+                    case "MSG":
+                        lineOut = handleMessage(parameter, senderId, timestamp);
+                        break;
+                    case "CONV":
+                        lineOut = handleGetConversation(parameter, senderId);
+                        break;
+                    case "SYNCLOGIN":
+                        lineOut = handleLoginSync(parameter);
+                        break;
+                    case "VOTE":
+                        lineOut = handleVote(parameter);
+                        break;
                 }
 
                 System.out.println("sending response: '" + lineOut + "'");
