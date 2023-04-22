@@ -116,10 +116,10 @@ public class ServerMCS {
                 votes.add(vote);
             }
 
-            boolean majority = checkVotes(votes);
+            boolean majority = checkVotes(votes); //Abstimmung auswerten
 
-            if(majority){
-                messages = messagesInVoting;
+            if(majority){ //Mehrheit erreicht
+                messages = messagesInVoting; //Nachrichten übernehmen
                 DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
             }
         }
@@ -178,7 +178,7 @@ public class ServerMCS {
 
         for(String vote: votes){
             if(vote.equals("YES")) yes++;
-            else{
+            else{ // alles außer YES wird als NO gewertet, keine Antwort zählt auch als NO
                 no++;
             }
         }
@@ -217,7 +217,7 @@ public class ServerMCS {
             messagesInVoting = deserializeMessages(serializedMessages);
             myVote = "NO";
             voting = true;
-        }else{ // ansonsten eigene Stimme zurückgeben
+        }else{ // ansonsten eigene Stimme zum schon bekannten Vorschlag zurückgeben
             return myVote;
         }
 
@@ -260,7 +260,7 @@ public class ServerMCS {
         return "ERROR: wrong username or password";
     }
 
-    void syncLogins(){
+    void syncLogins(){ //Anmeldungen an alle Server senden
         String serializedLogins = "";
 
         for(String id: loggedInUsers.keySet()){
@@ -283,9 +283,9 @@ public class ServerMCS {
 
         Message message = new Message(sender, receiver, content, timestamp);
 
-        boolean success = syncNewMessage(message);
+        boolean success = syncNewMessage(message); // Nachricht an alle Server zu Abstimmung senden
 
-        if(success){
+        if(success){ // Resultat der Abstimmung an Client zurückgeben
             return "Message from '" + sender + "' to '" + receiver + "': " + content;
         }else{
             return "no consensus";
