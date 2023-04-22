@@ -25,8 +25,11 @@ public class Client {
 
         System.out.println("Client started with id " + id);
         System.out.println("and server ports:");
+
         for(int i : serverPorts)
             System.out.println(i);
+
+        System.out.println("start typing to send messages to the server");
 
 
         mainLoop: while(true){

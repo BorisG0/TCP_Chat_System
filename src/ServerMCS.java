@@ -9,7 +9,7 @@ public class ServerMCS {
 
     boolean voting = false;
     String myVote = "no response"; // aktuelles Votum des Servers
-    ArrayList<Message> potentialNewMessages = new ArrayList<>(); // Nachrichten über die noch abgestimmt wird
+    ArrayList<Message> messagesInVoting = new ArrayList<>(); // Nachrichten über die noch abgestimmt wird
 
     HashMap<String, UserData> userDataByName = new HashMap<>(); // Hilfsstruktur zum Bekommen der Nutzer zum Namen
     HashMap<String, String> loggedInUsers = new HashMap<>(); // Speichern welcher Client auf welchen Nutzer angemeldet ist
@@ -43,6 +43,9 @@ public class ServerMCS {
             BufferedReader in;
 
             System.out.println("Server started on port " + port);
+            System.out.println("with other ports:");
+            for(int i : serverPorts)
+                System.out.println(i);
 
             while (true) {
                 String lineOut = "ERROR"; //Antwort vom Server vorbereiten
@@ -66,24 +69,11 @@ public class ServerMCS {
 
                 //entsprechende Methode zum Befehl aufrufen
                 switch (command) {
-                    case "LOGIN":
-                        lineOut = handleLogin(parameter, senderId);
-                        break;
-                    case "MSG":
-                        lineOut = handleMessage(parameter, senderId, timestamp);
-                        break;
-                    case "CONV":
-                        lineOut = handleGetConversation(parameter, senderId);
-                        break;
-                    case "SYNCLOGIN":
-                        lineOut = handleLoginSync(parameter);
-                        break;
-                    case "NEWVOTING":
-                        lineOut = handleNewVoting(parameter);
-                        break;
-                    case "VOTE":
-                        lineOut = handleVote();
-                        break;
+                    case "LOGIN" -> lineOut = handleLogin(parameter, senderId);
+                    case "MSG" -> lineOut = handleMessage(parameter, senderId, timestamp);
+                    case "CONV" -> lineOut = handleGetConversation(parameter, senderId);
+                    case "SYNCLOGIN" -> lineOut = handleLoginSync(parameter);
+                    case "VOTE" -> lineOut = handleVote(parameter);
                 }
 
                 System.out.println("sending response: '" + lineOut + "'");
@@ -94,8 +84,9 @@ public class ServerMCS {
                 connection.close();
 
                 if(voting){
-                    new Thread(new VoteCollector()).start();
                     voting = false;
+                    System.out.println("Starting vote collector");
+                    new Thread(new VoteCollector()).start();
                 }
             }
 
@@ -104,32 +95,28 @@ public class ServerMCS {
         }
     }
 
-    class VoteCollector implements Runnable{
-
-        VoteCollector(){
-
-        }
+    class VoteCollector implements Runnable{ // Stimmen anderer Server sammeln
         @Override
         public void run(){
             ArrayList<String> votes = new ArrayList<>();
             votes.add(myVote); //eigener Vote
 
             for(int serverPort: serverPorts){
-                String vote = sendCommand("VOTE", serverPort);
+                String vote = sendCommand("VOTE " + serializeMessages(messagesInVoting), serverPort);
                 votes.add(vote);
             }
 
             boolean majority = checkVotes(votes);
 
             if(majority){
-                messages = potentialNewMessages;
+                messages = messagesInVoting;
                 DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
             }
         }
     }
 
 
-    String serializeMessages(ArrayList<Message> messages){
+    String serializeMessages(ArrayList<Message> messages){ // messages zum Verschicken in einen String umwandeln
         String serializedMessages = "";
         for(Message message: messages){
             serializedMessages += message.serialize() + ";";
@@ -137,7 +124,7 @@ public class ServerMCS {
         return serializedMessages;
     }
 
-    ArrayList<Message> deserializeMessages(String serializedMessages){
+    ArrayList<Message> deserializeMessages(String serializedMessages){ // erhaltenen String in messages umwandeln
         ArrayList<Message> messages = new ArrayList<>();
 
         if(serializedMessages.length() == 0) return messages;
@@ -151,10 +138,10 @@ public class ServerMCS {
     }
 
     boolean syncNewMessage(Message message){
-        potentialNewMessages = (ArrayList<Message>) messages.clone();
-        potentialNewMessages.add(message);
+        messagesInVoting = (ArrayList<Message>) messages.clone();
+        messagesInVoting.add(message);
 
-        String serializedMessages = serializeMessages(potentialNewMessages);
+        String serializedMessages = serializeMessages(messagesInVoting);
 
         ArrayList<String> votes = new ArrayList<>();
         myVote = "YES";
@@ -162,13 +149,13 @@ public class ServerMCS {
 
         for(int i = serverPorts.size() - 1; i >= 0; i--){
             int serverPort = serverPorts.get(i);
-            String vote = sendCommand("NEWVOTING " + serializedMessages, serverPort);
+            String vote = sendCommand("VOTE " + serializedMessages, serverPort);
             votes.add(vote);
         }
 
         boolean majority = checkVotes(votes);
         if(majority){
-            messages = potentialNewMessages;
+            messages = messagesInVoting;
             DataToFileWriter.writeMessagesToFile(messages, String.valueOf(port));
         }
         return majority;
@@ -212,35 +199,36 @@ public class ServerMCS {
         return "no response";
     }
 
-    String handleNewVoting(String serializedMessages){ //Start der Abstimmung
-        voting = true;
-        myVote = "NO";
+    String handleVote(String serializedMessages){ //Vote Befehl verarbeiten
 
-        potentialNewMessages = deserializeMessages(serializedMessages);
+        // wenn ein neuer Vorschlag kommt, müssen noch von allen anderen servern votes gesammelt werden
+        if(!serializeMessages(messagesInVoting).equals(serializedMessages)){
+            messagesInVoting = deserializeMessages(serializedMessages);
+            myVote = "NO";
+            voting = true;
+        }else{ // ansonsten eigene Stimme zurückgeben
+            return myVote;
+        }
 
         // nur akzeptieren, wenn Anzahl der neuen Nachrichten größer als eigene ist, aber nicht mehr als um eine
-        if(potentialNewMessages.size() != messages.size() + 1){
+        if(messagesInVoting.size() != messages.size() + 1){
             System.out.println("set my vote to NO because of different message count");
             return myVote;
         }
 
         // prüfen, ob alle vorherigen Nachrichten gleich sind
         for(int i = 0; i < messages.size(); i++){
-            if(!messages.get(i).serialize().equals(potentialNewMessages.get(i).serialize())){ //Nachrichten vergleichen
+            if(!messages.get(i).serialize().equals(messagesInVoting.get(i).serialize())){ //Nachrichten vergleichen
                 System.out.println("set my vote to NO because of different messages");
 
                 System.out.println("my messages: " + serializeMessages(messages));
-                System.out.println("other messages: " + serializeMessages(potentialNewMessages));
+                System.out.println("other messages: " + serializeMessages(messagesInVoting));
                 return myVote;
             }
         }
 
         // alle Akzeptanzbedingungen erfüllt, also JA stimmen
         myVote = "YES";
-        return myVote;
-    }
-
-    String handleVote(){ //Vote Befehl verarbeiten
         return myVote;
     }
 
