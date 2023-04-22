@@ -47,10 +47,10 @@ servers are started with their own port as the first parameter and the ports of 
 
 example `java ServerMCS [port of server] [other port 1] [other ports 2] ...`
 
-start first server class without parameters `java Server`, the default parameters are 7770 7771 7772
+start first server class without parameters `java ServerMCS`, the default parameters are 7770 7771 7772
 
-start second server using `java Server 7771 7770 7772`
+start second server using `java ServerMCS 7771 7770 7772`
 
-start third server using `java Server 7772 7770 7771`
+start third server using `java ServerMCS 7772 7770 7771`
 
-and the client with `java ClientMCS 0 7770 7771 7772`
+and the client with `java Client 0 7770 7771 7772`
